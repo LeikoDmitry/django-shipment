@@ -1,0 +1,56 @@
+version: '3'
+
+services:
+
+  python:
+    image: python/local
+    build:
+      context: docker/python
+      args:
+        USER_ID: ${USER_ID}
+    environment:
+      USER: ${MYSQL_USER_ROOT}
+      PASSWORD: ${MYSQL_PASSWORD}
+      DATABASE_NAME: ${MYSQL_DATABASE}
+    volumes:
+      - ./app/back:/code
+    ports:
+      - 8000:8000
+    command: python manage.py runserver 0.0.0.0:8000
+    user: ${USER_ID}
+    depends_on:
+      - database
+    networks:
+      - app-network
+
+  nodejs:
+    image: nodejs/local
+    build:
+      context: docker/nodejs
+      args:
+        USER_ID: ${USER_ID}
+    volumes:
+      - ./app/front:/code
+    command: npm run serve
+    ports:
+      - 8080:8080
+
+
+  database:
+    image: mysql:8.0.28
+    command: --max-allowed-packet=256M --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./docker/mysql:/var/lib/mysql
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
